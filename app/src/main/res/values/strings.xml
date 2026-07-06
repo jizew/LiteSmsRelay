@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">LiteSmsRelay</string>
+
+    <!-- Notification -->
+    <string name="channel_name">Forwarding Active</string>
+    <string name="channel_desc">Keeps SMS forwarding running in background</string>
+    <string name="notification_title">SMS Relay</string>
+    <string name="notification_text">Listening for incoming SMS…</string>
+
+    <!-- UI -->
+    <string name="title_enabled">Enable Forwarding</string>
+    <string name="hint_target">Target phone number</string>
+    <string name="hint_keyword">Keyword filter (optional, blank = all)</string>
+    <string name="title_include_sender">Include original sender in message</string>
+    <string name="battery_request">Request battery optimization exemption</string>
+    <string name="battery_ok">Battery optimization: exempted</string>
+
+    <string name="status_active">● Active → forwarding to %1$s</string>
+    <string name="status_inactive">● Inactive — set target number first</string>
+
+    <string name="toast_perms_granted">Permissions granted</string>
+    <string name="toast_perms_denied">SMS permissions required. App cannot work without them.</string>
+</resources>
