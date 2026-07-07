@@ -11,7 +11,8 @@
     <!-- UI -->
     <string name="title_enabled">Enable Forwarding</string>
     <string name="hint_target">Target phone number</string>
-    <string name="hint_keyword">Keyword filter (optional, blank = all)</string>
+    <string name="hint_keyword">Keyword filter (optional, comma-separated, any match forwards)</string>
+    <string name="btn_save_keyword">Save Keywords</string>
     <string name="title_include_sender">Include original sender in message</string>
     <string name="battery_request">Request battery optimization exemption</string>
     <string name="battery_ok">Battery optimization: exempted</string>
@@ -21,4 +22,5 @@
 
     <string name="toast_perms_granted">Permissions granted</string>
     <string name="toast_perms_denied">SMS permissions required. App cannot work without them.</string>
+    <string name="toast_keyword_saved">Keywords saved</string>
 </resources>

@@ -29,9 +29,9 @@ class SmsReceiver : BroadcastReceiver() {
         val sender = messages[0].displayOriginatingAddress ?: messages[0].originatingAddress ?: "unknown"
         val body = messages.joinToString("") { it.messageBody }
 
-        val keyword = AppConfig.getKeyword(context)
-        if (keyword.isNotBlank() && !body.contains(keyword, ignoreCase = true)) {
-            Log.d(TAG, "SMS skipped (keyword filter): $keyword")
+        val keywords = AppConfig.getKeywords(context)
+        if (keywords.isNotEmpty() && keywords.none { body.contains(it, ignoreCase = true) }) {
+            Log.d(TAG, "SMS skipped (keyword filter): $keywords")
             return
         }
 

@@ -54,9 +54,17 @@
             android:id="@+id/etKeyword"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:hint="验证码"
+            android:layout_marginBottom="8dp"
+            android:hint="验证码,快递,验证"
+            android:inputType="text"
             android:textSize="16sp" />
+
+        <Button
+            android:id="@+id/btnSaveKeyword"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:text="@string/btn_save_keyword" />
 
         <Switch
             android:id="@+id/switchSender"

@@ -27,6 +27,7 @@ class MainActivity : Activity() {
     private lateinit var switchEnabled: Switch
     private lateinit var etTarget: EditText
     private lateinit var etKeyword: EditText
+    private lateinit var btnSaveKeyword: Button
     private lateinit var switchSender: Switch
     private lateinit var btnBattery: Button
     private lateinit var txtStatus: TextView
@@ -38,6 +39,7 @@ class MainActivity : Activity() {
         switchEnabled = findViewById(R.id.switchEnabled)
         etTarget = findViewById(R.id.etTarget)
         etKeyword = findViewById(R.id.etKeyword)
+        btnSaveKeyword = findViewById(R.id.btnSaveKeyword)
         switchSender = findViewById(R.id.switchSender)
         btnBattery = findViewById(R.id.btnBattery)
         txtStatus = findViewById(R.id.txtStatus)
@@ -67,8 +69,9 @@ class MainActivity : Activity() {
             updateStatus()
         }
 
-        etKeyword.setOnFocusChangeListener { _: View, _: Boolean ->
+        btnSaveKeyword.setOnClickListener {
             AppConfig.setKeyword(this, etKeyword.text.toString())
+            Toast.makeText(this, R.string.toast_keyword_saved, Toast.LENGTH_SHORT).show()
         }
     }
 

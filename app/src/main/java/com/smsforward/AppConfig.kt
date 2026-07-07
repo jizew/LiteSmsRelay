@@ -35,6 +35,11 @@ object AppConfig {
     fun setKeyword(ctx: Context, kw: String) =
         prefs(ctx).edit().putString(KEY_KEEP_KEYWORD, kw.trim()).apply()
 
+    fun getKeywords(ctx: Context): List<String> =
+        getKeyword(ctx).split(',', '，')
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+
     fun isIncludeSender(ctx: Context): Boolean =
         prefs(ctx).getBoolean(KEY_INCLUDE_SENDER, true)
 
