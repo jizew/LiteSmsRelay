@@ -29,22 +29,6 @@ class SmsForwardService : Service() {
             }
         }
 
-        /**
-         * Start the service with a forward action carrying SMS data.
-         * This is called by SmsReceiver so the forwarding runs inside
-         * the foreground-protected service instead of the transient
-         * BroadcastReceiver.
-         */
-        fun startWithForward(ctx: Context, intent: Intent) {
-            intent.setClass(ctx, SmsForwardService::class.java)
-            intent.action = "ACTION_FORWARD_SMS"
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                ctx.startForegroundService(intent)
-            } else {
-                ctx.startService(intent)
-            }
-        }
-
         fun stop(ctx: Context) {
             ctx.stopService(Intent(ctx, SmsForwardService::class.java))
         }
@@ -68,7 +52,6 @@ class SmsForwardService : Service() {
             val body = intent.getStringExtra(SmsReceiver.EXTRA_BODY) ?: ""
 
             if (body.isNotEmpty()) {
-                // Acquire a wake lock so the CPU stays on during the send
                 acquireWakeLock()
                 thread(start = true) {
                     try {
@@ -106,12 +89,6 @@ class SmsForwardService : Service() {
 
     // ── Foreground compat ──────────────────────────────────────────────
 
-    /**
-     * Android 14+ requires the foregroundServiceType parameter when the
-     * manifest declares a foregroundServiceType.  Omitting it causes a
-     * SecurityException and the service is killed — this was the root
-     * cause of "cannot forward in background on Android 14+".
-     */
     private fun startForegroundCompat() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             startForeground(
@@ -131,7 +108,7 @@ class SmsForwardService : Service() {
         val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
         wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "SmsForward:Service").apply {
             setReferenceCounted(false)
-            acquire(30_000L) // 30s should be plenty for SmsManager
+            acquire(30_000L)
         }
     }
 
