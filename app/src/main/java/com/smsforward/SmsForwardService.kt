@@ -9,10 +9,17 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
-import android.os.PowerManager
 import android.util.Log
-import kotlin.concurrent.thread
 
+/**
+ * Persistent foreground service that keeps the process alive.
+ *
+ * The actual SMS forwarding happens in [SmsReceiver] via goAsync() —
+ * SmsManager.sendTextMessage() is a fast synchronous call to the radio
+ * layer and does not need a foreground service to complete.  This
+ * service exists solely to give the process foreground priority so the
+ * system is less likely to kill it between SMS broadcasts.
+ */
 class SmsForwardService : Service() {
 
     companion object {
@@ -34,8 +41,6 @@ class SmsForwardService : Service() {
         }
     }
 
-    private var wakeLock: PowerManager.WakeLock? = null
-
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
@@ -44,45 +49,13 @@ class SmsForwardService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // Ensure foreground state on every onStartCommand (system may recreate)
         startForegroundCompat()
-
-        if (intent?.action == "ACTION_FORWARD_SMS") {
-            val sender = intent.getStringExtra(SmsReceiver.EXTRA_SENDER) ?: "unknown"
-            val body = intent.getStringExtra(SmsReceiver.EXTRA_BODY) ?: ""
-
-            if (body.isNotEmpty()) {
-                acquireWakeLock()
-                thread(start = true) {
-                    try {
-                        val target = AppConfig.getTarget(this)
-                        if (target.isBlank()) {
-                            Log.w(TAG, "Target is blank, skipping forward")
-                            return@thread
-                        }
-                        val messageToSend = if (AppConfig.isIncludeSender(this)) {
-                            "[$sender] $body"
-                        } else {
-                            body
-                        }
-                        SmsForwarder.forward(this, target, messageToSend)
-                        Log.i(TAG, "Forwarded SMS from $sender to $target")
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Forward failed: ${e.message}", e)
-                    } finally {
-                        releaseWakeLock()
-                    }
-                }
-            }
-        }
-
         return START_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
-        releaseWakeLock()
         Log.i(TAG, "Foreground service destroyed")
         super.onDestroy()
     }
@@ -99,24 +72,6 @@ class SmsForwardService : Service() {
         } else {
             startForeground(NOTIFICATION_ID, buildNotification())
         }
-    }
-
-    // ── Wake lock ──────────────────────────────────────────────────────
-
-    private fun acquireWakeLock() {
-        if (wakeLock?.isHeld == true) return
-        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "SmsForward:Service").apply {
-            setReferenceCounted(false)
-            acquire(30_000L)
-        }
-    }
-
-    private fun releaseWakeLock() {
-        wakeLock?.let {
-            if (it.isHeld) it.release()
-        }
-        wakeLock = null
     }
 
     // ── Notification ───────────────────────────────────────────────────

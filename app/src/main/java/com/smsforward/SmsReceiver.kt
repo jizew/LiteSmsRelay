@@ -3,7 +3,6 @@ package com.smsforward
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.os.PowerManager
 import android.provider.Telephony
 import android.util.Log
@@ -13,8 +12,6 @@ class SmsReceiver : BroadcastReceiver() {
 
     companion object {
         private const val TAG = "SmsReceiver"
-        const val EXTRA_SENDER = "extra_sender"
-        const val EXTRA_BODY = "extra_body"
         private const val WAKE_LOCK_TIMEOUT_MS = 30_000L
     }
 
@@ -44,87 +41,27 @@ class SmsReceiver : BroadcastReceiver() {
             body
         }
 
-        // ── Strategy: try foreground service first, fall back to goAsync ──
+        // Forward directly in the BroadcastReceiver via goAsync().
         //
-        // Android 12+ (API 31) restricts starting foreground services from
-        // the background.  SMS_RECEIVED is NOT on the exemption list, so
-        // startForegroundService() throws
-        // ForegroundServiceStartNotAllowedException when the app is not
-        // visible.
+        // SmsManager.sendTextMessage() is a fast synchronous call to the
+        // radio layer (typically < 100 ms).  It does NOT need a foreground
+        // service to complete.  The system grants BroadcastReceiver a ~10 s
+        // window via goAsync(), which is more than enough.
         //
-        // However, if our persistent foreground service is already running
-        // (started by App.onCreate / BootReceiver / MainActivity), the
-        // process counts as "foreground" and the call succeeds — this is
-        // the happy path.
-        //
-        // When the service has been killed (aggressive OEM, Force Stop,
-        // etc.), we fall back to goAsync() + WakeLock and forward directly
-        // in the BroadcastReceiver's short-lived window.  This is less
-        // reliable but still works for SmsManager.sendTextMessage() which
-        // is a fast synchronous call to the radio layer.
+        // The persistent foreground service (SmsForwardService) keeps the
+        // process alive so the Receiver can be triggered, but the actual
+        // forwarding happens here — simple and reliable regardless of
+        // whether the app is in the foreground or background.
 
-        val serviceIntent = Intent(context, SmsForwardService::class.java).apply {
-            putExtra(EXTRA_SENDER, sender)
-            putExtra(EXTRA_BODY, body)
-            action = "ACTION_FORWARD_SMS"
-        }
-
-        val serviceStarted = tryStartForegroundService(context, serviceIntent)
-
-        if (serviceStarted) {
-            Log.i(TAG, "Delegated SMS from $sender to SmsForwardService")
-        } else {
-            // Fallback: forward directly in the BroadcastReceiver via goAsync
-            Log.w(TAG, "Foreground service unavailable, forwarding via goAsync fallback")
-            forwardViaGoAsync(context, target, messageToSend, sender)
-        }
-    }
-
-    /**
-     * Attempt to start the foreground service.  Returns true on success.
-     * Catches ForegroundServiceStartNotAllowedException (Android 12+)
-     * and generic IllegalStateException on older versions.
-     */
-    private fun tryStartForegroundService(context: Context, intent: Intent): Boolean {
-        return try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
-            }
-            true
-        } catch (e: IllegalStateException) {
-            // Android 12+: ForegroundServiceStartNotAllowedException
-            // Android 8-11: IllegalStateException if not in foreground
-            Log.w(TAG, "Cannot start foreground service from background: ${e.message}")
-            false
-        } catch (e: SecurityException) {
-            Log.e(TAG, "SecurityException starting foreground service: ${e.message}")
-            false
-        }
-    }
-
-    /**
-     * Fallback path: use goAsync() + WakeLock to forward the SMS directly
-     * inside the BroadcastReceiver.  The system grants the Receiver a
-     * ~10 s window; SmsManager.sendTextMessage() is a fast synchronous
-     * call to the radio layer and typically completes well within that.
-     */
-    private fun forwardViaGoAsync(
-        context: Context,
-        target: String,
-        message: String,
-        sender: String
-    ) {
         val pendingResult = goAsync()
         val wakeLock = acquireWakeLock(context)
 
         thread(start = true) {
             try {
-                SmsForwarder.forward(context, target, message)
-                Log.i(TAG, "Forwarded SMS from $sender to $target (goAsync fallback)")
+                SmsForwarder.forward(context, target, messageToSend)
+                Log.i(TAG, "Forwarded SMS from $sender to $target")
             } catch (e: Exception) {
-                Log.e(TAG, "Forward failed (goAsync fallback): ${e.message}", e)
+                Log.e(TAG, "Forward failed: ${e.message}", e)
             } finally {
                 wakeLock?.let { if (it.isHeld) it.release() }
                 pendingResult.finish()
