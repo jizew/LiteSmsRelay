@@ -158,9 +158,7 @@ export ANDROID_HOME="/path/to/android-sdk"
 
 ## 许可证
 
-本项目采用 [MIT License](LICENSE)。
-
-选择 MIT 的原因：项目代码量小、无第三方依赖，目标是方便个人审计、修改、二次构建和复用。MIT 也要求保留版权和许可声明。需要注意的是，开源许可证本身不能替代法律约束；任何使用者仍必须遵守所在地法律法规和通信服务条款。
+[MIT License](LICENSE)
 
 ## 免责声明
 
